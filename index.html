@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0b1220">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="مذكرة الدرس">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>مذكرة الدرس التفاعلية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0a1120;
+    --navy2:#111c30;
+    --panel:#14213a;
+    --panel-2:#182741;
+    --copper:#c17a4d;
+    --copper-l:#e3a877;
+    --copper-d:#8a4a24;
+    --cyan:#42bccb;
+    --cyan-d:#2a8b98;
+    --ink:#eef2f6;
+    --ink-dim:#8fa1b8;
+    --line:#243654;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 8%, rgba(66,188,203,.08), transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(193,122,77,.08), transparent 40%),
+      var(--navy);
+    color:var(--ink);
+    font-family:'Cairo','Tahoma',sans-serif;
+    padding:20px 14px 90px;
+    min-height:100%;
+  }
+
+  .toolbar{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:linear-gradient(180deg,var(--navy) 65%,transparent);
+    padding:10px 0 18px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    padding:11px 18px;
+    font-size:13.5px;
+    font-weight:700;
+    transition:transform .12s ease, filter .12s ease;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  button:active{transform:scale(0.95);}
+  button:hover{filter:brightness(1.08);}
+  .btn-pdf{background:linear-gradient(135deg,var(--copper-l),var(--copper)); color:#2a1608;}
+  .btn-word{background:linear-gradient(135deg,#5cd6e3,var(--cyan)); color:#04262a;}
+  .btn-ghost{background:var(--panel-2); color:var(--ink-dim); border:1px solid var(--line);}
+  .btn-img{background:var(--navy2); color:var(--cyan); border:1px dashed var(--cyan-d); font-size:12px; padding:6px 12px; border-radius:20px;}
+  .btn-img:hover{background:var(--cyan-d); color:#04262a;}
+
+  #sheet{
+    max-width:960px;
+    margin:0 auto;
+    background:
+      linear-gradient(var(--panel), var(--panel)) padding-box,
+      repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(255,255,255,.015) 28px);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:0 0 34px;
+    box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .hero{
+    position:relative;
+    padding:26px 32px 22px;
+    background:var(--panel-2);
+    border-bottom:1px solid var(--line);
+    margin-bottom:26px;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0 0 auto 0; height:4px;
+    background:linear-gradient(90deg,var(--copper),var(--cyan));
+  }
+  .title-row{text-align:center; position:relative; z-index:1;}
+  .title-row h1{
+    font-size:22px;
+    font-weight:800;
+    letter-spacing:.5px;
+    color:var(--copper-l);
+    margin:0;
+  }
+
+  .content{padding:0 32px;}
+
+  .meta-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:24px;
+  }
+  .field{
+    background:var(--navy2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    transition:border-color .15s ease;
+  }
+  .field:focus-within{border-color:var(--cyan-d);}
+  .field label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    color:var(--cyan);
+    margin-bottom:5px;
+    font-weight:700;
+  }
+  .field label::before{
+    content:"";
+    width:5px; height:5px; border-radius:50%;
+    background:var(--copper);
+    display:inline-block;
+  }
+  .field [contenteditable]{
+    min-height:20px;
+    outline:none;
+    font-size:13.5px;
+    color:var(--ink);
+    line-height:1.5;
+  }
+  .field [contenteditable]:empty::before{content:attr(data-ph); color:var(--ink-dim);}
+
+  .block{margin-bottom:20px;}
+  .block h2{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:14.5px;
+    font-weight:700;
+    color:var(--copper-l);
+    margin:0 0 10px;
+  }
+  .block h2::before{
+    content:"";
+    width:4px; height:16px; border-radius:2px;
+    background:linear-gradient(180deg,var(--copper),var(--cyan));
+    display:inline-block;
+  }
+  .block .field{grid-column:span 4;}
+  .cell-editable{outline:none; min-height:20px; line-height:1.65; font-size:13.5px;}
+  .cell-editable:empty::before{content:attr(data-ph); color:var(--ink-dim);}
+  .cell-editable img{max-width:100%; border-radius:8px; display:block; margin:8px 0; border:1px solid var(--line);}
+
+  table{width:100%; border-collapse:collapse; margin-top:6px; font-size:13px; border-radius:10px; overflow:hidden;}
+  th,td{border:1px solid var(--line); padding:10px; vertical-align:top; text-align:right;}
+  th{background:var(--navy2); color:var(--cyan); font-size:12px; font-weight:700;}
+  .stage-cell{width:14%; font-weight:700; color:var(--copper-l); background:rgba(193,122,77,.08);}
+  .dur-cell{width:8%; text-align:center;}
+  .cell-tools{margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;}
+
+  .row-actions{margin-top:12px; text-align:center;}
+
+  @media (max-width:700px){
+    .meta-grid{grid-template-columns:repeat(2,1fr);}
+    .hero, .content{padding-left:18px; padding-right:18px;}
+  }
+
+  /* Export mode: a professional light print theme that keeps the brand identity */
+  .exporting{
+    background:#faf7f2 !important;
+    box-shadow:none !important;
+    border:1px solid #e2d6c8 !important;
+  }
+  .exporting *{
+    box-shadow:none !important;
+  }
+  .exporting .hero{
+    background:#fff9f2 !important;
+    border-bottom:2px solid #c17a4d !important;
+  }
+  .exporting .hero::before{
+    background:linear-gradient(90deg,#c17a4d,#2a8b98) !important;
+  }
+  .exporting .title-row h1{color:#7a3f1d !important;}
+
+  .exporting .content{color:#2a2420 !important;}
+  .exporting .field{
+    background:#ffffff !important;
+    border:1px solid #ddd0c0 !important;
+  }
+  .exporting .field label{color:#2a8b98 !important;}
+  .exporting .field label::before{background:#c17a4d !important;}
+  .exporting [contenteditable]{color:#1f1b17 !important;}
+  .exporting .block h2{color:#7a3f1d !important;}
+  .exporting .block h2::before{background:linear-gradient(180deg,#c17a4d,#2a8b98) !important;}
+
+  .exporting table{border:1px solid #ddd0c0 !important;}
+  .exporting th,
+  .exporting td{border:1px solid #ddd0c0 !important; color:#1f1b17 !important;}
+  .exporting th{background:#f1e6d8 !important; color:#7a3f1d !important;}
+  .exporting .stage-cell{background:#faf1e6 !important; color:#7a3f1d !important;}
+
+  .exporting .cell-editable img{border:1px solid #ddd0c0 !important;}
+  .exporting [contenteditable]:empty::before{content:"" !important;}
+  .exporting .cell-tools,
+  .exporting .btn-img,
+  .exporting .row-actions{display:none !important;}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="btn-pdf" onclick="exportPDF()">⬇ تصدير PDF</button>
+  <button class="btn-word" onclick="exportWord()">⬇ تصدير Word</button>
+  <button class="btn-ghost" onclick="addRow()">+ سطر لجدول السير</button>
+  <button class="btn-ghost" onclick="if(confirm('مسح كل المحتوى؟')) resetAll()">🗑 مسح الكل</button>
+  <button class="btn-install" id="installBtn" style="display:none; background:linear-gradient(135deg,#5cd6e3,#42bccb); color:#04262a;" onclick="installApp()">📲 تثبيت التطبيق</button>
+</div>
+
+<div id="sheet">
+  <div class="hero">
+    <div class="title-row">
+      <h1>مذكرة درس</h1>
+    </div>
+  </div>
+
+  <div class="content">
+  <div class="meta-grid">
+    <div class="field"><label>المادة</label><div contenteditable="true" data-ph="......."></div></div>
+    <div class="field"><label>المستوى</label><div contenteditable="true" data-ph="ثانية متوسط"></div></div>
+    <div class="field"><label>المقطع التعليمي</label><div contenteditable="true" data-ph="......."></div></div>
+    <div class="field"><label>المدة</label><div contenteditable="true" data-ph="......."></div></div>
+    <div class="field" style="grid-column:span 4;"><label>الأستاذ</label><div contenteditable="true" data-ph="......."></div></div>
+  </div>
+
+  <div class="block">
+    <h2>الوضعية التعليمية</h2>
+    <div class="field"><div class="cell-editable" contenteditable="true" data-ph="......."></div>
+      <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2>الكفاءة الختامية</h2>
+    <div class="field"><div class="cell-editable" contenteditable="true" data-ph="......."></div></div>
+  </div>
+
+  <div class="block">
+    <h2>مركبات الكفاءة</h2>
+    <div class="field"><div class="cell-editable" contenteditable="true" data-ph="......."></div></div>
+  </div>
+
+  <div class="block">
+    <h2>معايير و مؤشرات التقويم</h2>
+    <table>
+      <tr>
+        <td class="cell-editable" contenteditable="true" data-ph="......."></td>
+        <td class="cell-editable" contenteditable="true" data-ph="......."></td>
+        <td class="cell-editable" contenteditable="true" data-ph="......."></td>
+        <td class="cell-editable" contenteditable="true" data-ph="......."></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="meta-grid" style="grid-template-columns:1fr 1fr;">
+    <div class="block">
+      <h2>أنماط من الوضعيات</h2>
+      <div class="field"><div class="cell-editable" contenteditable="true" data-ph="......."></div></div>
+    </div>
+    <div class="block">
+      <h2>الوسائل المستعملة</h2>
+      <div class="field"><div class="cell-editable" contenteditable="true" data-ph="......."></div></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2>المراجع المعتمدة</h2>
+    <div class="field"><div class="cell-editable" contenteditable="true" data-ph="......."></div></div>
+  </div>
+
+  <div class="block">
+    <h2>سير الوضعية التعليمية التعلمية</h2>
+    <table id="flowTable">
+      <thead>
+        <tr>
+          <th style="width:14%;">المراحل</th>
+          <th>أنشطة الأستاذ</th>
+          <th>أنشطة التلميذ</th>
+          <th style="width:8%;">المدة</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="stage-cell cell-editable" contenteditable="true">تمهيد</td>
+          <td>
+            <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+            <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+          </td>
+          <td>
+            <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+            <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+          </td>
+          <td class="dur-cell cell-editable" contenteditable="true" data-ph="..."></td>
+        </tr>
+        <tr>
+          <td class="stage-cell cell-editable" contenteditable="true">وضعية جزئية</td>
+          <td>
+            <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+            <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+          </td>
+          <td>
+            <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+            <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+          </td>
+          <td class="dur-cell cell-editable" contenteditable="true" data-ph="..."></td>
+        </tr>
+        <tr>
+          <td class="stage-cell cell-editable" contenteditable="true">النشاطات التعلمية</td>
+          <td>
+            <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+            <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+          </td>
+          <td>
+            <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+            <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+          </td>
+          <td class="dur-cell cell-editable" contenteditable="true" data-ph="..."></td>
+        </tr>
+        <tr>
+          <td class="stage-cell cell-editable" contenteditable="true">تقويم الموارد المعرفية</td>
+          <td>
+            <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+            <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+          </td>
+          <td>
+            <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+            <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+          </td>
+          <td class="dur-cell cell-editable" contenteditable="true" data-ph="..."></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="row-actions"><button class="btn-ghost" onclick="addRow()">+ سطر جديد</button></div>
+  </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" style="display:none">
+
+<script>
+let targetCell = null;
+
+function insertImage(btn){
+  targetCell = btn.parentElement.previousElementSibling;
+  document.getElementById('fileInput').click();
+}
+
+document.getElementById('fileInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file || !targetCell) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = document.createElement('img');
+    img.src = ev.target.result;
+    targetCell.appendChild(img);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+function addRow(){
+  const tbody = document.querySelector('#flowTable tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="stage-cell cell-editable" contenteditable="true" data-ph="مرحلة"></td>
+    <td>
+      <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+      <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+    </td>
+    <td>
+      <div class="cell-editable" contenteditable="true" data-ph="......."></div>
+      <div class="cell-tools"><button class="btn-img" onclick="insertImage(this)">+ صورة</button></div>
+    </td>
+    <td class="dur-cell cell-editable" contenteditable="true" data-ph="..."></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function resetAll(){
+  document.querySelectorAll('[contenteditable]').forEach(el=>{
+    el.querySelectorAll('img').forEach(i=>i.remove());
+    if(!el.classList.contains('stage-cell')){
+      el.textContent = '';
+    }
+  });
+}
+
+async function exportPDF(){
+  const sheet = document.getElementById('sheet');
+  sheet.classList.add('exporting');
+  await new Promise(r=>setTimeout(r,50));
+  const canvas = await html2canvas(sheet, {scale:2, useCORS:true, backgroundColor:'#ffffff'});
+  sheet.classList.remove('exporting');
+  const imgData = canvas.toDataURL('image/jpeg', 0.95);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p','mm','a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = canvas.height * imgWidth / canvas.width;
+  let heightLeft = imgHeight;
+  let position = 0;
+  pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+  while(heightLeft > 0){
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+  pdf.save('مذكرة_الدرس.pdf');
+}
+
+function exportWord(){
+  const sheet = document.getElementById('sheet');
+  const clone = sheet.cloneNode(true);
+  clone.querySelectorAll('.cell-tools, .row-actions').forEach(el=>el.remove());
+  clone.querySelectorAll('img').forEach(img=>{ img.style.maxWidth='400px'; });
+  // strip placeholder hint text: contenteditable's ::before can't be cloned anyway (it's CSS-only), so nothing to strip here.
+  clone.querySelectorAll('.hero::after').forEach(el=>el.remove());
+
+  const styleForWord = `
+    body{font-family:Arial, Tahoma, sans-serif; direction:rtl;}
+    table{border-collapse:collapse; width:100%;}
+    td,th{border:1px solid #999; padding:6px; text-align:right; vertical-align:top;}
+    th{background:#eeeeee;}
+    .hero{text-align:center; border-bottom:2px solid #c17a4d; padding-bottom:10px; margin-bottom:16px;}
+    .eyebrow{display:none;}
+    h1{color:#8a4a24; text-align:center;}
+    h2{color:#8a4a24; font-size:14px; border-bottom:1px solid #ccc;}
+    .field{border:1px solid #ccc; padding:6px; margin-bottom:8px;}
+    .field label{display:block; font-size:11px; color:#2a8b98; font-weight:bold;}
+    .stage-cell{font-weight:bold; color:#8a4a24;}
+  `;
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8"><title>مذكرة الدرس</title><style>${styleForWord}</style></head>
+    <body>${clone.innerHTML}</body>
+    </html>
+  `;
+
+  const blob = new Blob(['\ufeff', html], {type:'application/msword'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'مذكرة_الدرس.doc';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(err => console.log('SW error:', err));
+  });
+}
+
+let deferredPrompt = null;
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-flex';
+});
+
+async function installApp(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.style.display = 'none';
+}
+
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+});
+</script>
+
+</body>
+</html>
